@@ -23,7 +23,7 @@
 #include "kvs/errors.h"
 #include "kvs/pool_allocator.h"
 
-static pthread_mutex_t memPoolMutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t memPoolMutex;// = PTHREAD_MUTEX_INITIALIZER;
 static tlsf_t tlsf = NULL;
 static void *pMem = NULL;
 

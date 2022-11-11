@@ -19,3 +19,6 @@
 	path = libraries/amazon/amazon-kinesis-video-streams-media-interface
 	url = https://github.com/aws-samples/amazon-kinesis-video-streams-media-interface.git
 	branch = main
+[submodule "libraries/3rdparty/FreeRTOS"]
+	path = libraries/3rdparty/FreeRTOS
+	url = https://github.com/FreeRTOS/FreeRTOS-Kernel

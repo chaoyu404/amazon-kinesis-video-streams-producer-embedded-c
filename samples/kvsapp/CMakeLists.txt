@@ -28,6 +28,15 @@ if(${HAVE_SIGNAL_H})
     set(COMPILE_FLAGS_FOR_SIGNAL_H -DHAVE_SIGNAL_H=1)
 endif()
 
+if(${WASM_BUILD})
+    set(${APP_NAME}_SRC ${${APP_NAME}_SRC}
+        ../wasm_files/wasm_clib.c
+        ../wasm_files/vsnprintf.c
+        ../wasm_files/fake_pthread.c
+
+    )
+endif()
+
 # build static executable
 add_executable(${APP_NAME} ${${APP_NAME}_SRC})
 set_target_properties(${APP_NAME} PROPERTIES OUTPUT_NAME ${APP_NAME})

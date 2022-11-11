@@ -26,7 +26,7 @@ if(${USE_WEBRTC_MBEDTLS_LIB})
     target_include_directories(aziotsharedutil PUBLIC ${WEBRTC_INC_PATH})
 endif()
 target_link_libraries(aziotsharedutil PUBLIC
-    mbedtls mbedcrypto mbedx509
+#    mbedtls mbedcrypto mbedx509
     m
 )
 

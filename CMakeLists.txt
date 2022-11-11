@@ -7,10 +7,11 @@ option(BOARD_INGENIC_T31                "Build board Ingenic T31"               
 option(BOARD_RPI                        "Build board Raspberry Pi"                          OFF)
 option(USE_POOL_ALLOCATOR_LIB           "Use pool allocator on KVS lib only"                OFF)
 option(USE_POOL_ALLOCATOR_ALL           "Apply pool allocator on KVS lib and executable"    OFF)
-option(USE_LLHTTP                       "Use llhttp as http parser"                         ON)
-option(SAMPLE_OPTIONS_FROM_ENV_VAR      "Sample reads options from environment variable"    ON)
+option(USE_LLHTTP                       "Use llhttp as http parser"                         OFF)
+option(SAMPLE_OPTIONS_FROM_ENV_VAR      "Sample reads options from environment variable"    OFF)
 option(BUILD_WEBRTC_SAMPLES             "Build a sample that kvs and web rtc share buffers" OFF)
 option(BUILD_TEST                       "Build the testing tree."                           OFF)
+option(WASM_BUILD                       "Wasm build"                                        ON)
 
 set(USE_WEBRTC_MBEDTLS_LIB      OFF)
 
@@ -83,11 +84,25 @@ if(${USE_POOL_ALLOCATOR_LIB})
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--wrap,kvsMalloc -Wl,--wrap,kvsRealloc -Wl,--wrap,kvsCalloc -Wl,--wrap,kvsFree")
 endif()
 
+if (${WASM_BUILD})
+    set(FREERTOS_INC_PATH ${CMAKE_CURRENT_LIST_DIR}/libraries/3rdparty/FreeRTOS/include)
+
+    set(CMAKE_EXE_LINKER_FLAGS
+        "-Wl,--initial-memory=131072,--no-entry" CACHE INTERNAL "")
+
+    set(WASM_DEFINED_SYMBOLS "${CMAKE_SOURCE_DIR}/defined-symbols.txt" )
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-unused-command-line-argument")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -nostdlib -z stack-size=65536 -O3 -g")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -nostdlib -z stack-size=65536 -O3 -g")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS},--allow-undefined-file=${WASM_DEFINED_SYMBOLS} ") 
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,--export=__heap_base,--export=__data_end,--export=main")
+endif()
+
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/bin)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_BINARY_DIR}/lib)
 
 # Add thirdparty libraries
-if(NOT ${USE_WEBRTC_MBEDTLS_LIB})
+if( (NOT ${USE_WEBRTC_MBEDTLS_LIB}) AND (NOT ${WASM_BUILD}))
     include(libmbedtls)
 endif()
 include(libllhttp)

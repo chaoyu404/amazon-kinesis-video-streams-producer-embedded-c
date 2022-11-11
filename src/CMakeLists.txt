@@ -34,18 +34,23 @@ set(LIB_SRC
     ${LIB_DIR}/source/net/http_helper.c
     ${LIB_DIR}/source/net/http_helper.h
     ${LIB_DIR}/source/net/http_parser_adapter.h
-    ${LIB_DIR}/source/net/netio.c
     ${LIB_DIR}/source/net/netio.h
     ${LIB_DIR}/source/os/allocator.c
     ${LIB_DIR}/source/os/allocator.h
     ${LIB_DIR}/source/os/endian.h
     ${LIB_DIR}/source/os/pool_allocator.c
-    ${LIB_DIR}/source/restful/aws_signer_v4.c
     ${LIB_DIR}/source/restful/aws_signer_v4.h
     ${LIB_DIR}/source/restful/iot/iot_credential_provider.c
     ${LIB_DIR}/source/restful/kvs/restapi_kvs.c
     ${LIB_DIR}/source/stream/stream.c
 )
+
+if(NOT ${WASM_BUILD})
+    set(LIB_SRC ${LIB_SRC}
+        ${LIB_DIR}/source/net/netio.c
+        ${LIB_DIR}/source/restful/aws_signer_v4.c
+    ) 
+endif()
 
 set(LIB_PUB_INC
     ${LIB_DIR}/include
@@ -74,7 +79,7 @@ else()
     )
 endif()
 
-if(NOT ${USE_WEBRTC_MBEDTLS_LIB})
+if( (NOT ${USE_WEBRTC_MBEDTLS_LIB}) AND (NOT ${WASM_BUILD}))
     set(LINK_LIBS ${LINK_LIBS}
         mbedtls
         mbedcrypto
@@ -82,7 +87,11 @@ if(NOT ${USE_WEBRTC_MBEDTLS_LIB})
     )
 endif()
 
-if(UNIX)
+if(${WASM_BUILD})
+    set(LIB_SRC ${LIB_SRC}
+        ${LIB_DIR}/port/port_wasm.c
+    )
+elseif(UNIX)
     set(LIB_SRC ${LIB_SRC}
         ${LIB_DIR}/port/port_linux.c
     )

@@ -278,6 +278,9 @@ int NetIo_send(NetIoHandle xNetIoHandle, const unsigned char *pBuffer, size_t uB
     }
     else
     {
+        // william: for debug
+        if (uBytesToSend > 0) printf("%s(): %.*s\n", __func__, (int)uBytesToSend, (char *)pBuffer);
+
         do
         {
             n = mbedtls_ssl_write(&(pxNet->xSsl), (const unsigned char *)pIndex, uBytesRemaining);
@@ -326,6 +329,8 @@ int NetIo_recv(NetIoHandle xNetIoHandle, unsigned char *pBuffer, size_t uBufferS
         }
         else
         {
+            // william: for debug
+			//printf("%s(): %.*s\n", __func__, (int)n, (char *)pBuffer);
             *puBytesReceived = n;
         }
     }

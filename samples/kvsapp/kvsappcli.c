@@ -33,6 +33,12 @@
 #include "com/amazonaws/kinesis/video/capturer/AudioCapturer.h"
 #include "com/amazonaws/kinesis/video/capturer/VideoCapturer.h"
 
+#ifdef __wasm__
+#undef ENABLE_AUDIO_TRACK //FIXME
+#include "freertos_plus_io/FreeRTOS_IO.h"
+extern int WAMR_stop(void);
+#endif
+
 #define ERRNO_NONE 0
 #define ERRNO_FAIL __LINE__
 
@@ -114,6 +120,50 @@ static int onMkvSent(uint8_t *pData, size_t uDataLen, void *pAppData)
 }
 #endif
 
+#ifdef __wasm__
+uint64_t getEpochTimestampInUs(void);
+static void GetVideoFrame(KvsAppHandle kvsAppHandle, Peripheral_Descriptor_t get_frame_device)
+{
+    int res = ERRNO_NONE;
+    void *pFrameBuffer = NULL;
+    uint64_t timestamp = 0;
+    size_t frameSize = 0;
+
+    if (!get_frame_device)
+    {
+        printf("%s(): Frame Device error\n", __FUNCTION__);
+        return;
+    }   
+
+    pFrameBuffer = malloc(VIDEO_FRAME_BUFFER_SIZE_BYTES);
+
+    if (!pFrameBuffer)
+    {
+        printf("%s(): OOM\n", __FUNCTION__);
+        return;
+    }
+
+    if (get_frame_device)
+    {
+        frameSize = FreeRTOS_read(get_frame_device, pFrameBuffer, VIDEO_FRAME_BUFFER_SIZE_BYTES);
+        if (frameSize == 0)
+        {
+            printf("%s(): Get Frame failed\n", __FUNCTION__);
+            free(pFrameBuffer);
+        }
+        else
+        {
+
+            timestamp = getEpochTimestampInUs();
+
+            // KvsApp will help to free pFrameBuffer
+            KvsApp_addFrame(kvsAppHandle, pFrameBuffer, frameSize, VIDEO_FRAME_BUFFER_SIZE_BYTES, timestamp / MICROSECONDS_IN_A_MILLISECOND, TRACK_VIDEO);
+
+        }
+    }
+}
+
+#else
 static void *videoThread(void *arg)
 {
     int res = ERRNO_NONE;
@@ -226,6 +276,7 @@ static void *audioThread(void *arg)
     return NULL;
 }
 #endif /* ENABLE_AUDIO_TRACK */
+#endif /* __wasm__ */
 
 static int setKvsAppOptions(KvsAppHandle kvsAppHandle)
 {
@@ -315,6 +366,9 @@ int main(int argc, char *argv[])
     unsigned int uErrorId = 0;
     const char *pKvsStreamName = NULL;
     DoWorkExParamter_t xDoWorkExParamter = {0};
+#ifdef __wasm__
+    Peripheral_Descriptor_t get_frame_device = NULL;
+#endif
 
 #ifdef KVS_USE_POOL_ALLOCATOR
     poolAllocatorInit((void *)pMemPool, sizeof(pMemPool));
@@ -374,10 +428,12 @@ int main(int argc, char *argv[])
     {
         printf("Failed to set video format\n");
     }
+#ifndef __wasm__ //single thread
     else if (pthread_create(&videoThreadTid, NULL, videoThread, kvsAppHandle))
     {
         printf("Failed to create video thread\n");
     }
+#endif
     else if (setKvsAppOptions(kvsAppHandle) != ERRNO_NONE)
     {
         printf("Failed to set options\n");
@@ -386,6 +442,13 @@ int main(int argc, char *argv[])
     {
         while (true)
         {
+
+#ifdef __wasm__
+            if (WAMR_stop() > 0)
+            {
+                gStopRunning = true;
+            }
+#endif
             /* FIXME: Check if network is reachable before running KVS. */
             if (gStopRunning)
             {
@@ -398,13 +461,36 @@ int main(int argc, char *argv[])
                 break;
             }
 
+#ifdef __wasm__
+            if (videoCapturerAcquireStream(videoCapturerHandle))
+            {
+                printf("%s(): Failed to acquire video stream\n", __FUNCTION__);
+                break;
+            }
+
+            get_frame_device = FreeRTOS_open( (const int8_t*)"/dev/kvs_video", 0);
+            if ( get_frame_device == NULL )
+            {
+                printf("%s(): Failed to open FreeRTOS IO device\n", __FUNCTION__);
+                break;
+            }
+#endif
             while (true)
             {
+
+#ifdef __wasm__
+                if (WAMR_stop() > 0)
+                {
+                    gStopRunning = true;
+                }
+#endif                
                 if (gStopRunning)
                 {
                     break;
                 }
-
+#ifdef __wasm__ //single thread
+                GetVideoFrame(kvsAppHandle, get_frame_device);
+#endif
                 if ((res = KvsApp_doWork(kvsAppHandle)) != 0)
                 {
                     printf("do work err:-%X\n", -res);
@@ -467,12 +553,15 @@ int main(int argc, char *argv[])
     KvsApp_close(kvsAppHandle);
     gStopRunning = true;
 
+#ifndef __wasm__
     pthread_join(videoThreadTid, NULL);
 #if ENABLE_AUDIO_TRACK
     pthread_join(audioThreadTid, NULL);
 #endif /* ENABLE_AUDIO_TRACK */
 
     videoCapturerDestory(videoCapturerHandle);
+#endif //__wasm__
+
     videoCapturerHandle = NULL;
 #if ENABLE_AUDIO_TRACK
     audioCapturerDestory(audioCapturerHandle);
