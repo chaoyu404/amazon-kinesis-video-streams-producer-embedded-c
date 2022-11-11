@@ -91,7 +91,7 @@ if (${WASM_BUILD})
         "-Wl,--initial-memory=131072,--no-entry" CACHE INTERNAL "")
 
     set(WASM_DEFINED_SYMBOLS "${CMAKE_SOURCE_DIR}/defined-symbols.txt" )
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-unused-command-line-argument")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-unused-command-line-argument -Wno-duplicate-decl-specifier")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -nostdlib -z stack-size=65536 -O3 -g")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -nostdlib -z stack-size=65536 -O3 -g")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS},--allow-undefined-file=${WASM_DEFINED_SYMBOLS} ") 

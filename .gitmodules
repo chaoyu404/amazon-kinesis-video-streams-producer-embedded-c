@@ -17,8 +17,9 @@
 	branch = release
 [submodule "libraries/amazon/amazon-kinesis-video-streams-media-interface"]
 	path = libraries/amazon/amazon-kinesis-video-streams-media-interface
-	url = https://github.com/aws-samples/amazon-kinesis-video-streams-media-interface.git
-	branch = main
+	url = https://github.com/chaoyu404/amazon-kinesis-video-streams-media-interface.git
+	branch = wasm
 [submodule "libraries/3rdparty/FreeRTOS"]
 	path = libraries/3rdparty/FreeRTOS
 	url = https://github.com/FreeRTOS/FreeRTOS-Kernel
+	branch = main
